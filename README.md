@@ -14,6 +14,7 @@
 * Java 8
 * Spring Boot
 * Spring Data JPA
+* Hibernate
 * Fork/Join Framework
 * Stream API
 * Lucene Morphology
