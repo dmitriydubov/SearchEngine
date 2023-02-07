@@ -39,5 +39,3 @@
 Поисковый запрос производится на вкладке "Search".
   
   ![Search](https://user-images.githubusercontent.com/69419608/216476041-263c03ef-d38b-440f-9fb4-b6155046d105.jpg)
-
-
