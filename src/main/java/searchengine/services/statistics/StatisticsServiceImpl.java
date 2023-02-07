@@ -36,7 +36,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 
         List<DetailedStatisticsItem> detailed;
 
-        if (siteRepository.findAll().size() == 0) {
+        if (siteRepository.findAll().isEmpty()) {
             detailed = new ArrayList<>(makeInitialPage(total));
         } else {
             detailed = new ArrayList<>(updatePage(total));
@@ -71,7 +71,6 @@ public class StatisticsServiceImpl implements StatisticsService {
         return detailed;
     }
 
-    @Transactional
     private List<DetailedStatisticsItem> updatePage(TotalStatistics total) {
         List<DetailedStatisticsItem> detailed = new ArrayList<>();
         siteRepository.findAll().forEach(site -> {

@@ -12,7 +12,7 @@ import java.util.Optional;
 
 @AllArgsConstructor
 public class PageBuilder {
-    public synchronized static Optional<Page> makePage(
+    public static synchronized Optional<Page> makePage(
             Connection.Response response,
             HashMap<Site, String> siteMap,
             RepositoryUtils repositoryUtils
@@ -38,13 +38,13 @@ public class PageBuilder {
         return page;
     }
 
-    private synchronized static String makePath(Site site, String url) {
+    private static synchronized String makePath(Site site, String url) {
         return url.equals(site.getUrl()) ?
                 url.replaceAll(site.getUrl(), "/") :
                 url.replaceAll(site.getUrl(), "");
     }
 
-    private synchronized static boolean checkForAlreadyExistPath(String path, RepositoryUtils repositoryUtils, String url) {
+    private static synchronized boolean checkForAlreadyExistPath(String path, RepositoryUtils repositoryUtils, String url) {
         SiteRepository siteRepository = repositoryUtils.getSiteRepository();
         PageRepository pageRepository = repositoryUtils.getPageRepository();
         Optional<Site> site = siteRepository.findByUrl(url);
@@ -53,7 +53,7 @@ public class PageBuilder {
         return optionalPage.isPresent();
     }
 
-    private synchronized static String getContext(Connection.Response response) throws IOException {
+    private static synchronized String getContext(Connection.Response response) throws IOException {
         Document doc = response.parse();
         return doc.html();
     }

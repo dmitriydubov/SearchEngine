@@ -6,7 +6,6 @@ import org.jsoup.Connection;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
 import searchengine.model.Site;
-import searchengine.model.Status;
 import searchengine.services.indexing.IndexingServiceImpl;
 
 import java.io.IOException;
@@ -59,11 +58,7 @@ public class IndexingTask extends RecursiveAction {
             ForkJoinTask.invokeAll(taskSet);
         } catch (IOException e) {
             e.printStackTrace();
-            site.setStatus(Status.FAILED);
-            site.setStatusTime(new Date());
-            repositoryUtils.getSiteRepository().saveAndFlush(site);
-        } catch (InterruptedException e) {
-            return;
-        }
+            repositoryUtils.setFailedSite(site);
+        } catch (InterruptedException ignored) {}
     }
 }

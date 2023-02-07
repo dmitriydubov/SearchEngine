@@ -68,6 +68,7 @@ public class RepositoryUtils {
         siteRepository.saveAndFlush(site);
     }
 
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public void setIndexingLastError(Site site, int statusCode, String message) {
         site.setLastError(
                 "Ошибка подключения. Код ошибки - " + statusCode + " Причина: " + message
@@ -82,7 +83,7 @@ public class RepositoryUtils {
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    private void deleteSearchIndex(List<Page> pageList) {
+    public void deleteSearchIndex(List<Page> pageList) {
         pageList.forEach(page -> searchIndexRepository.deleteSelectedContains(page.getId()));
     }
 
@@ -116,6 +117,13 @@ public class RepositoryUtils {
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public void setIndexedSite(Site site) {
         site.setStatus(Status.INDEXED);
+        site.setStatusTime(new Date());
+        siteRepository.saveAndFlush(site);
+    }
+
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public void setFailedSite(Site site) {
+        site.setStatus(Status.FAILED);
         site.setStatusTime(new Date());
         siteRepository.saveAndFlush(site);
     }

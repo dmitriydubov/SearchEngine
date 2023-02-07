@@ -1,4 +1,5 @@
 package searchengine.services.utils;
+import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.select.Elements;
 import searchengine.dto.searching.SearchingData;
@@ -6,6 +7,8 @@ import searchengine.model.Lemma;
 import searchengine.model.Page;
 import searchengine.model.SearchIndex;
 import searchengine.repository.SearchIndexRepository;
+
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -30,7 +33,7 @@ public class SearchingUtils {
 
             lemmaSortedList.forEach(lemma -> {
                 Optional<SearchIndex> index = repositoryUtils.getSearchIndexRepository()
-                        .findLemmaId(page.getId(), lemma.getId());
+                    .findLemmaId(page.getId(), lemma.getId());
                 index.ifPresent(searchIndex -> {
                     absRelevance.set(absRelevance.get() + searchIndex.getLemmaRank());
                     lemmaList.add(lemma);
@@ -46,7 +49,13 @@ public class SearchingUtils {
             searchingItem.setUri(page.getPath());
             searchingItem.setTitle(Jsoup.parse(page.getContext()).title());
 
-            String snippet = makeSnippet(page, query);
+            String snippet = "";
+            try {
+                snippet = makeSnippet(page, query);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
             if (!snippet.equals("")) {
                 searchingItem.setSnippet(snippet);
                 searchingItem.setSite(lemmaList.get(0).getSite().getUrl());
@@ -81,17 +90,24 @@ public class SearchingUtils {
         return maxRel;
     }
 
-    private static String makeSnippet(Page page, String query) {
+    private static String makeSnippet(Page page, String query) throws IOException {
         String[] queryStrArr = query.trim().split(" ");
-        StringBuilder sb = new StringBuilder();
-        Arrays.stream(queryStrArr).forEach(word -> sb.append(word).append(" "));
-        String text = sb.toString().trim();
-        String regex = "(" + text + ")";
+        StringBuilder stringOriginalTextBuilder = new StringBuilder();
+        StringBuilder stringTextWithoutEndingBuilder = new StringBuilder();
+
+        Arrays.stream(queryStrArr).forEach(word -> stringOriginalTextBuilder.append(word).append(" "));
+        Arrays.stream(queryStrArr).forEach(word -> stringTextWithoutEndingBuilder
+            .append(getRussianWordRoot(word))
+            .append("[а-яА-ЯёЁ]*")
+            .append(" "));
+
+        String queryText = stringOriginalTextBuilder.toString().trim();
+        String queryTextWithoutEnding = stringTextWithoutEndingBuilder.toString().trim();
+        String regex = "(" + queryText + "|" + queryTextWithoutEnding + ")";
         Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
-        Elements elements = Jsoup.parse(
-            page.getContext()
-        ).body().getElementsMatchingOwnText(pattern);
+        String pageText = page.getContext().replaceAll("ё", "е");
+        Elements elements = Jsoup.parse(pageText).body().getElementsMatchingOwnText(pattern);
 
         StringBuilder snippet = new StringBuilder();
         Matcher matcher = pattern.matcher(elements.text());
@@ -100,18 +116,32 @@ public class SearchingUtils {
             int end = matcher.end();
 
             String targetQuery = elements.text().substring(start, end);
+            String textBefore = elements.text().substring(0, start);
             String textAfter = elements.text().substring(end);
-            String visibleSnippetText;
 
-            if (textAfter.length() > 200) {
-                visibleSnippetText = textAfter.substring(0, 200) + " . . .";
-            } else {
-                visibleSnippetText = textAfter;
+            if (textBefore.length() > 100) {
+                textBefore = " . . . " + elements.text().substring(start - 100, start);
+            }
+            if (textAfter.length() > 100) {
+                textAfter = elements.text().substring(end, end + 100) + " . . . ";
             }
 
-            snippet.append(targetQuery.replaceAll(targetQuery, "<b>" + targetQuery + "</b>"))
-                    .append(visibleSnippetText);
+            snippet.append(textBefore)
+                .append(targetQuery.replaceAll(targetQuery, "<b>" + targetQuery + "</b>"))
+                .append(textAfter);
         }
         return snippet.toString();
+    }
+
+    private static String getRussianWordRoot(String word) {
+        if (word.length() == 3) return word;
+        if (StringUtils.endsWith(word, "ести")) return StringUtils.remove(word, "сти");
+
+        String endingsRegex = "(ий|ей|ой|ая|ие|ый|ые|ть|ти|их|о|а)$";
+        String suffixRegex = "(ова|ева|ец|иц)$";
+        String suffixWithEnding = "(иться|аться|уться)$";
+        return word.replaceAll(endingsRegex, "")
+            .replaceAll(suffixRegex, "")
+            .replaceAll(suffixWithEnding, "");
     }
 }

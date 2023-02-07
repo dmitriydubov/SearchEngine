@@ -36,34 +36,36 @@ public class SearchingServiceImpl implements SearchingService{
 
         try {
             List<Lemma> lemmaSortedList = new ArrayList<>(
-                    QueryLemmaBuilder.makeLemmaSortedList(query, url, repositoryUtils)
+                QueryLemmaBuilder.makeLemmaSortedList(query, url, repositoryUtils)
             );
             List<Page> pageList = new ArrayList<>();
             lemmaSortedList.forEach(lemma -> updatePageList(pageList, lemma));
             List<Page> uniquePageList = pageList.stream()
-                    .filter(page -> Collections.frequency(pageList, page) > 1)
-                    .distinct()
-                    .toList();
+                .distinct()
+                .toList();
 
             searchingItemList = SearchingUtils.makeDetailedSearchingItem(
-                    uniquePageList,
-                    lemmaSortedList,
-                    repositoryUtils,
-                    query
+                uniquePageList,
+                lemmaSortedList,
+                repositoryUtils,
+                query
             );
 
             List<SearchingData> sortedSearchingItemList = searchingItemList.stream()
-                    .sorted(Comparator.comparingDouble(SearchingData::getRelevance).reversed())
-                    .limit(limit)
-                    .toList();
+                .sorted(Comparator.comparingDouble(SearchingData::getRelevance).reversed())
+                .toList();
+
+            int resultCount = sortedSearchingItemList.size();
 
             if (offset > 0 && sortedSearchingItemList.size() > offset) {
                 sortedSearchingItemList = sortedSearchingItemList.stream().skip(offset).toList();
             }
 
-            int resultCount = searchingItemList.size();
-
-            response = new SuccessSearchingResponse(true, resultCount, sortedSearchingItemList);
+            response = new SuccessSearchingResponse(
+                true,
+                resultCount,
+                sortedSearchingItemList.stream().limit(limit).toList()
+            );
         } catch (IOException ex) {
             ex.printStackTrace();
             response = new EmptySearchingResponse();
@@ -88,7 +90,7 @@ public class SearchingServiceImpl implements SearchingService{
             return false;
         }
 
-        return repositoryUtils.getLemmaRepository().findAll().size() != 0 &&
-                repositoryUtils.getSiteRepository().findAll().size() != 0;
+        return !repositoryUtils.getLemmaRepository().findAll().isEmpty() &&
+                !repositoryUtils.getSiteRepository().findAll().isEmpty();
     }
 }
