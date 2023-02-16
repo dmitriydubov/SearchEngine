@@ -14,16 +14,16 @@ public class QueryLemmaBuilder {
             String url,
             RepositoryUtils repositoryUtils
     ) throws IOException {
-        final int FREQUENCY_LIMIT = (int) Math.round(repositoryUtils.getLemmaRepository().getLemmaMaxFrequency() * 0.8);
+        final int frequencyLimit = (int) Math.round(repositoryUtils.getLemmaRepository().getLemmaMaxFrequency() * 1);
         Set<String> queryLemmaSet = LemmaBuilder.makeLemmasFromSearchQuery(query);
         Set<Lemma> lemmaSet;
 
         if (url == null) {
-            lemmaSet = makeLemmaSetAllSites(queryLemmaSet, repositoryUtils, FREQUENCY_LIMIT);
+            lemmaSet = makeLemmaSetAllSites(queryLemmaSet, repositoryUtils, frequencyLimit);
         } else {
             Optional<Site> optionalSite = repositoryUtils.getSiteRepository().findByUrl(url);
             optionalSite.ifPresent(site -> siteId = site.getId());
-            lemmaSet = makeLemmaSetOneSite(queryLemmaSet, repositoryUtils, FREQUENCY_LIMIT);
+            lemmaSet = makeLemmaSetOneSite(queryLemmaSet, repositoryUtils, frequencyLimit);
         }
 
         return lemmaSet.stream().sorted(Comparator.comparing(Lemma::getFrequency)).toList();
@@ -32,7 +32,7 @@ public class QueryLemmaBuilder {
     private static Set<Lemma> makeLemmaSetAllSites(
             Set<String> queryLemmaSet,
             RepositoryUtils repositoryUtils,
-            int FREQUENCY_LIMIT
+            int frequencyLimit
     ) {
         Set<Lemma> lemmaSet = new HashSet<>();
         queryLemmaSet.forEach(lemma -> lemmaSet.addAll(
@@ -40,7 +40,7 @@ public class QueryLemmaBuilder {
                 repositoryUtils.getLemmaRepository()
                     .findByLemma(lemma)
                     .stream()
-                    .filter(lemmaDB -> lemmaDB.getFrequency() <= FREQUENCY_LIMIT).collect(Collectors.toSet()))
+                    .filter(lemmaDB -> lemmaDB.getFrequency() <= frequencyLimit).collect(Collectors.toSet()))
             )
         );
 
@@ -50,13 +50,13 @@ public class QueryLemmaBuilder {
     private static Set<Lemma> makeLemmaSetOneSite(
             Set<String> queryLemmaSet,
             RepositoryUtils repositoryUtils,
-            int FREQUENCY_LIMIT
+            int frequencyLimit
     ) {
         Set<Lemma> lemmaSet = new HashSet<>();
         queryLemmaSet.forEach(lemma -> lemmaSet.addAll(
             repositoryUtils.getLemmaRepository().getLemmaListByLemmaAndSiteId(lemma, siteId)
                 .stream()
-                .filter(lemmaDB -> lemmaDB.getFrequency() <= FREQUENCY_LIMIT)
+                .filter(lemmaDB -> lemmaDB.getFrequency() <= frequencyLimit)
                 .collect(Collectors.toSet()))
         );
         return lemmaSet;
